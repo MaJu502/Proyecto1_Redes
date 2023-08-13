@@ -1,0 +1,22 @@
+{
+  "name": "xmpp_redes",
+  "version": "1.0.0",
+  "description": "client to connect and manage accounts on class server.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MaJu502/Proyecto1_Redes.git"
+  },
+  "keywords": [
+    "xmpp"
+  ],
+  "author": "Marco Jurado",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MaJu502/Proyecto1_Redes/issues"
+  },
+  "homepage": "https://github.com/MaJu502/Proyecto1_Redes#readme"
+}
