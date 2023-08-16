@@ -1,0 +1,8 @@
+Identifier: login
+Timestamp: 2023-08-16T17:52:43.121Z
+Error: SASLError: not-authorized
+
+Identifier: login
+Timestamp: 2023-08-16T17:52:43.122Z
+Error: SASLError: not-authorized
+

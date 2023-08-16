@@ -179,6 +179,9 @@ const handleAdministrar = async () => {
                 break;
             case 4:
                 console.log('Eliminando cuenta');
+
+                await loggedClient.deleteAccount();
+
                 break;
             case 5:
                 console.log('Volviendo al Menú Principal');

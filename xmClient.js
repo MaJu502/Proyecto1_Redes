@@ -5,49 +5,74 @@
    https://npm.io/package/@conn/client
 */
 
-const { client } = require("@xmpp/client");
+const { client, xml } = require("@xmpp/client");
+const fs = require("fs");
 
 class xmClient {
     constructor(username, password) {
         this.username = username;
         this.password = password;
-        this.server = 'alumchat.xyz';
+        this.server = "alumchat.xyz";
         this.conn = null;
-        console.log("CREATEDDDDDDDDD!");
+        this.errorLogPath = "error-log-xmpp.txt";
+        this.initErrorLog();
     }
+
+    initErrorLog() {
+        fs.writeFileSync(this.errorLogPath, ""); // Limpia el archivo de registro de errores
+    };
+
+    logError(identifier, error) {
+        const errorMsg = `Identifier: ${identifier}\nTimestamp: ${new Date().toISOString()}\nError: ${error}\n\n`;
+        fs.appendFileSync(this.errorLogPath, errorMsg);
+    };
 
     async signup() {
         this.conn = client({
-            service: `xmpp://${this.server}:5222`,
-            domain: this.server,
+            service: "xmpp://alumchat.xyz:5222",
+            domain: "alumchat.xyz",
+            username: "jur20308main",
+            password: "pass123",
+        
             tls: {
-                rejectUnauthorized: false,
-            },
+              rejectUnauthorized: true,
+            }
         });
-
+    
         this.conn.on("error", (err) => {
-            console.error(" >> ERROR: error happened during signup:", err);
+            const identifier = "signup";
+            this.logError(identifier, err);
+            console.error(" >> ERROR: error happened during connection (check error-log-xmpp.txt for info).");
         });
-
-        this.conn.on("online", async (jid) => {
-            console.log("Connected for signup! JID:", jid.toString());
-
-            // Envía una solicitud de registro utilizando el mecanismo "PLAIN"
-            await this.conn.send(
-                xml(
-                    "iq",
-                    { type: "set", id: "reg1" },
-                    xml("query", { xmlns: "jabber:iq:register" }),
-                    xml("username", {}, this.username),
-                    xml("password", {}, this.password)
-                )
-            );
-        });
-
+        
         try {
-            await this.conn.start();
+            this.conn.start();
+        
+            this.conn.on("online", () => {
+              console.log("XMPP connection online");
+        
+              const stanza = xml(
+                "iq", 
+                { type: "set", id: "register1"},
+                xml("query", { xmlns: "jabber:iq:register" },
+                xml("username", {}, this.username),
+                xml("password", {}, this.password),
+                )
+              );
+                
+    
+                console.log(stanza.toString())
+                this.conn.send(stanza);
+                console.log("Registration IQ sent successfully");
+                
+                this.conn.disconnect();
+                console.log("Disconnected");
+            });
+        
         } catch (error) {
-            console.error(" >> ERROR: error happened during signup:", error);
+            const identifier = "signup";
+            this.logError(identifier, error);
+            console.error(" >> ERROR: error happened during signup (check error-log-xmpp.txt for info).");
         }
     }
 
@@ -63,18 +88,21 @@ class xmClient {
         });
     
         this.conn.on("online", (jid) => {
-            console.log(" >> Login successful! JID:", jid.toString());
+            console.log(" >> Login successful! JID:\n", jid.toString());
             // Aquí puedes realizar acciones después de un inicio de sesión exitoso
         });
     
         this.conn.on("error", (err) => {
-            console.error(" >> ERROR: error happened during login:", err);
+            const identifier = "login";
+            this.logError(identifier, err);
         });
     
         try {
             await this.conn.start();
         } catch (error) {
-            console.error(" >> ERROR: error happened during login:", error);
+            const identifier = "login";
+            this.logError(identifier, error);
+            console.error(" >> ERROR: error happened during login: user might not exist (check error-log-xmpp.txt for info).");
         }
     }
     
@@ -85,9 +113,37 @@ class xmClient {
             await this.conn.stop();
             console.log(" >> Logout successful!")
         } catch (error) {
-            console.error(" >> ERROR: error happened during logout:", error);
+            const identifier = "logout";
+            this.logError(identifier, error);
+            console.error(" >> ERROR: error happened during logout (check error-log-xmpp.txt for info).");
         }
     }
+
+    async deleteAccount() {
+
+        try {        
+            
+            const stanza = xml(
+                "iq", 
+                { type: "set", id: "delete-account"},
+                xml("query", { xmlns: "jabber:iq:register" },
+                xml("username", {}, this.username),
+                xml("password", {}, this.password),
+                xml("remove"),
+            ));
+
+            this.conn.send(stanza);
+            console.log(" >> Account deleted succesfully! ")
+        
+        } catch (error) {
+            const identifier = "deleteAccount";
+            this.logError(identifier, error);
+            console.error(" >> ERROR: error happened during delete (check error-log-xmpp.txt for info).");
+        }
+
+    }
+    
+
     
 }
 
