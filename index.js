@@ -1,4 +1,4 @@
-const { xmClient } = require('./xmClient');
+const { xmClient } = require("./xmClient");
 
 /*
   Universidad de Valle de Guatemala
@@ -14,7 +14,7 @@ const { xmClient } = require('./xmClient');
    con readline y posteriormente corregida y optimizada con la 
    ayuda de chat GPT. 
 */
-const readline = require('readline');
+const readline = require("readline");
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -23,14 +23,14 @@ const input = async (msg) => {
     try {
         return await new Promise((resolve) => rl.question(msg, resolve));
     } catch (error) {
-        console.error('Error al obtener la entrada:', error);
+        console.error("Error al obtener la entrada:", error);
         throw error;
     }
 };
 
 // VARIABLES IMPORTANTES
-let loggedInUser = '';
-let loggedInPassword = '';
+let loggedInUser = "";
+let loggedInPassword = "";
 let isLoged = false;
 let loggedClient = new xmClient(loggedInPassword, loggedInPassword);
 
@@ -39,51 +39,51 @@ let loggedClient = new xmClient(loggedInPassword, loggedInPassword);
    para mensajería y administrador 
 */
 const showMainMenu = async () => {
-    console.log('\n\n\n--- Menú Principal ---');
-    console.log('1. Mensajería');
-    console.log('2. Administrar');
-    console.log('3. Salir');
+    console.log("\n\n\n--- Menú Principal ---");
+    console.log("1. Mensajería");
+    console.log("2. Administrar");
+    console.log("3. Salir");
 
-    const choice = await input('\n >> Seleccione una opción: ');
+    const choice = await input("\n >> Seleccione una opción: ");
     return parseInt(choice);
 };
 
 /* Menu para mensajeria */
 const showMensajeriaMenu = async () => {
-    console.log('\n\n\n--- Menú de Mensajería ---');
-    console.log('1. Mensaje privado');
-    console.log('2. Chat broadcast');
-    console.log('3. Mostrar contactos');
-    console.log('4. Agregar contacto');
-    console.log('5. Info de contacto');
-    console.log('6. Mod. Estado');
-    console.log('7. Notificaciones');
-    console.log('8. Archivos');
-    console.log('9. Volver al Menú Principal');
+    console.log("\n\n\n--- Menú de Mensajería ---");
+    console.log("1. Mensaje privado");
+    console.log("2. Chat broadcast");
+    console.log("3. Mostrar contactos");
+    console.log("4. Agregar contacto");
+    console.log("5. Info de contacto");
+    console.log("6. Mod. Estado");
+    console.log("7. Notificaciones");
+    console.log("8. Archivos");
+    console.log("9. Volver al Menú Principal");
 
-    const choice = await input('\n >> Seleccione una opción: ');
+    const choice = await input("\n >> Seleccione una opción: ");
     return parseInt(choice);
 };
 /* Menu para adminstrar */
 const showAdministrarMenu = async () => {
-        console.log('\n\n\n--- Menú de Administración ---');
-        console.log('1. Register');
-        console.log('2. Log in');
-        console.log('3. Log out');
-        console.log('4. Delete account');
-        console.log('5. Volver al Menú Principal');
+        console.log("\n\n\n--- Menú de Administración ---");
+        console.log("1. Register");
+        console.log("2. Log in");
+        console.log("3. Log out");
+        console.log("4. Delete account");
+        console.log("5. Volver al Menú Principal");
 
-        const choice = await input('\n >> Seleccione una opción: ');
+        const choice = await input("\n >> Seleccione una opción: ");
         return parseInt(choice);
 };
 
 /* Función main del programa */
 const main = async () => {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
     // VARIABLES IMPORTANTES
-    const servidorREDES = '@alumchat.xyz';
-    let usuario = '';
-    let contra = '';
+    const servidorREDES = "@alumchat.xyz";
+    let usuario = "";
+    let contra = "";
 
     while (true) {
         const choice = await showMainMenu();
@@ -96,11 +96,11 @@ const main = async () => {
                 await handleAdministrar();
                 break;
             case 3:
-                console.log('Saliendo del menú.');
+                console.log("Saliendo del menú.");
                 rl.close();
                 return;
             default:
-                console.log('Opción no válida. Inténtalo nuevamente.');
+                console.log("Opción no válida. Inténtalo nuevamente.");
         }
     }
 };
@@ -111,110 +111,115 @@ const handleMensajeria = async () => {
 
         switch (choice) {
             case 1:
-                console.log('Realizando Mensaje privado');
+                console.log("Realizando Mensaje privado");
                 break;
             case 2:
-                console.log('Realizando Chat broadcast');
+                console.log("Realizando Chat broadcast");
                 break;
             case 3:
-                console.log('Mostrando contactos');
+                console.log("Mostrando contactos");
+
+                await loggedClient.getContactList();
+
                 break;
             case 4:
-                console.log('Agregando contacto');
+                console.log("Agregando contacto");
+                const usuarioADD = await input("Ingrese el JID de usuario que desea agregar: ");
+
+                await loggedClient.addContact(usuarioADD);
+
                 break;
             case 5:
-                console.log('Mostrando info de contacto');
+                console.log("Mostrando info de contacto");
+                const usuarioINFO = await input("Ingrese el JID de usuario que desea obtener informacion: ");
+
+                await loggedClient.getContactInfo(usuarioINFO);
+
                 break;
             case 6:
                 console.log('Modificando estado');
+                const presenceChoice = await input('Selecciona el estado de presencia (available/away/dnd): ');
+                const statusMessage = await input('Ingrese un mensaje de estado (opcional): ');
+
+                await loggedClient.changeUserPresence(presenceChoice, statusMessage);
                 break;
+                
             case 7:
-                console.log('Gestionando notificaciones');
+                console.log("Gestionando notificaciones");
                 break;
             case 8:
-                console.log('Accediendo a archivos');
+                console.log("Accediendo a archivos");
                 break;
             case 9:
-                console.log('Volviendo al Menú Principal');
+                console.log("Volviendo al Menú Principal");
                 return;
             default:
-                console.log('Opción no válida. Inténtalo nuevamente.');
+                console.log("Opción no válida. Inténtalo nuevamente.");
         }
     }
 };
 
 const handleAdministrar = async () => {
+    let outputreturn;
     while (true) {
         const choice = await showAdministrarMenu();
 
         switch (choice) {
             case 1:
-                loggedInUser = await input('Ingrese el nombre de usuario: ');
-                loggedInPassword = await input('Ingrese la contraseña: ');
-                console.log('Registrando usuario:', loggedInUser);
-                console.log('Contraseña:', loggedInPassword);
+                loggedInUser = await input("Ingrese el nombre de usuario: ");
+                loggedInPassword = await input("Ingrese la contraseña: ");
+                console.log("Registrando usuario:", loggedInUser);
+                console.log("Contraseña:", loggedInPassword);
 
                 // aqui va client
                 handleClientConnect();
-                await loggedClient.signup();
+                outputreturn = await loggedClient.signup();
+                if (outputreturn == 0) {
+                    loggedClient.listenForIncomingSubscriptions();
+                };
 
                 break;
             case 2:
-                loggedInUser = await input('Ingrese el nombre de usuario: ');
-                loggedInPassword = await input('Ingrese la contraseña: ');
-                console.log('Registrando usuario:', loggedInUser);
-                console.log('Contraseña:', loggedInPassword);
+                loggedInUser = await input("Ingrese el nombre de usuario: ");
+                loggedInPassword = await input("Ingrese la contraseña: ");
+                console.log("Registrando usuario:", loggedInUser);
+                console.log("Contraseña:", loggedInPassword);
 
                 // aqui va client
                 handleClientConnect();
-                await loggedClient.login();
+                outputreturn = await loggedClient.login();
+                if (outputreturn == 0) {
+                    loggedClient.listenForIncomingSubscriptions();
+                };
 
                 break;
             case 3:
-                console.log('Cerrando sesión');
+                console.log("Cerrando sesión");
                 
                 // aqui va client
-                await loggedClient.logout();
+                outputreturn = await loggedClient.logout();
+                if (outputreturn == 0) {
+                    console.log(" >> Stopped listening for suscriptions.")
+                };
 
                 break;
             case 4:
-                console.log('Eliminando cuenta');
+                console.log("Eliminando cuenta");
 
                 await loggedClient.deleteAccount();
 
                 break;
             case 5:
-                console.log('Volviendo al Menú Principal');
+                console.log("Volviendo al Menú Principal");
                 return;
             default:
-                console.log('Opción no válida. Inténtalo nuevamente.');
+                console.log("Opción no válida. Inténtalo nuevamente.");
         }
-    }
-};
-
-const handleLogin = async () => {
-    const nombreUsuario = await input('Ingrese el nombre de usuario: ');
-    const contraseña = await input('Ingrese la contraseña: ');
-
-    // Aquí puedes verificar los datos ingresados para el inicio de sesión
-    if (nombreUsuario === 'usuario' && contraseña === 'contraseña') {
-        console.log('Iniciando sesión con usuario:', nombreUsuario);
-        loggedInUser = nombreUsuario;
-        loggedInPassword = contraseña;
-        isLoged =  True;
-        return { username: nombreUsuario, password: contraseña };
-    } else {
-        console.log('Credenciales incorrectas.');
-        return null;
     }
 };
 
 const handleClientConnect = async () => {
     loggedClient = new xmClient(loggedInUser, loggedInPassword);
 }
-
-
-
-
 
 main();

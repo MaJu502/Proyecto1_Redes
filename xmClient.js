@@ -5,7 +5,7 @@
    https://npm.io/package/@conn/client
 */
 
-const { client, xml } = require("@xmpp/client");
+const { client, xml, jid } = require("@xmpp/client");
 const fs = require("fs");
 
 class xmClient {
@@ -16,6 +16,7 @@ class xmClient {
         this.conn = null;
         this.errorLogPath = "error-log-xmpp.txt";
         this.initErrorLog();
+        this.contacts = []; // Array para almacenar los contactos
     }
 
     initErrorLog() {
@@ -68,11 +69,13 @@ class xmClient {
                 this.conn.disconnect();
                 console.log("Disconnected");
             });
+            return 0;
         
         } catch (error) {
             const identifier = "signup";
             this.logError(identifier, error);
             console.error(" >> ERROR: error happened during signup (check error-log-xmpp.txt for info).");
+            return 1;
         }
     }
 
@@ -99,10 +102,12 @@ class xmClient {
     
         try {
             await this.conn.start();
+            return 0;
         } catch (error) {
             const identifier = "login";
             this.logError(identifier, error);
             console.error(" >> ERROR: error happened during login: user might not exist (check error-log-xmpp.txt for info).");
+            return 1;
         }
     }
     
@@ -112,10 +117,12 @@ class xmClient {
             // Espera a que se detenga la conexión
             await this.conn.stop();
             console.log(" >> Logout successful!")
+            return 0;
         } catch (error) {
             const identifier = "logout";
             this.logError(identifier, error);
             console.error(" >> ERROR: error happened during logout (check error-log-xmpp.txt for info).");
+            return 1;
         }
     }
 
@@ -142,6 +149,104 @@ class xmClient {
         }
 
     }
+
+    async addContact(contactJID) {
+        try {
+            const subscribeStanza = xml(
+                'presence',
+                { to: contactJID, type: 'subscribe' }
+            );
+
+            this.conn.send(subscribeStanza);
+            this.contacts.push(contactJID);
+
+            console.log(` >> Sent contact subscription request to ${contactJID}`);
+        } catch (error) {
+            const identifier = 'sendContactSubscription';
+            this.logError(identifier, error);
+        }
+    }
+
+
+    async listenForIncomingSubscriptions() {
+        try {
+            this.conn.on('stanza', (stanza) => {
+                if (stanza.is('presence') && stanza.attrs.type === 'subscribe') {
+                    const contactJID = stanza.attrs.from;
+                    console.log(` >> Incoming subscription request from: ${contactJID}`);
+    
+                    // Aceptar automáticamente las solicitudes de suscripción
+                    const subscribedStanza = xml(
+                        'presence',
+                        { to: contactJID, type: 'subscribed' }
+                    );
+    
+                    this.conn.send(subscribedStanza);
+    
+                    console.log(` >> Accepted subscription request from: ${contactJID}`);
+                }
+            });
+        } catch (error) {
+            const identifier = 'listenForIncomingSubscriptions';
+            this.logError(identifier, error);
+        }
+    }
+
+    async getContactList() {
+        try {
+            console.log("esperadn")
+            const contactList = await this.conn.getRoster();
+            console.log("nah")
+
+            console.log('\n--- Lista de Contactos ---');
+            for (const jidStr in contactList) {
+                if (contactList.hasOwnProperty(jidStr)) {
+                    const contactJID = jid(jidStr);
+                    console.log(contactJID.toString());
+                }
+            }
+            console.log('--- Fin de la Lista ---\n');
+        } catch (error) {
+            const identifier = 'getContactList';
+            this.logError(identifier, error);
+        }
+    }
+
+    async getContactInfo(contactJID) {
+        try {
+            const vcard = await this.conn.getVCard(contactJID);
+
+            console.log(`Información del contacto: ${contactJID}`);
+            console.log(`Nombre: ${vcard.name}`);
+            console.log(`Apellido: ${vcard.family}`);
+            console.log(`Correo electrónico: ${vcard.email}`);
+            // Agrega más campos de vCard según tus necesidades
+
+        } catch (error) {
+            const identifier = 'getContactInfo';
+            this.logError(identifier, error);
+        }
+    }
+
+    async changeUserPresence(presenceType, statusMessage = '') {
+        try {
+            const presenceStanza = xml(
+                'presence',
+                { type: presenceType },
+                xml('status', {}, statusMessage)
+            );
+
+            this.conn.send(presenceStanza);
+
+            console.log(` >> Cambio de estado de usuario: ${presenceType}`);
+        } catch (error) {
+            const identifier = 'changeUserPresence';
+            this.logError(identifier, error);
+        }
+    }
+
+
+    
     
 
     
