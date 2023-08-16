@@ -18,5 +18,9 @@
   "bugs": {
     "url": "https://github.com/MaJu502/Proyecto1_Redes/issues"
   },
-  "homepage": "https://github.com/MaJu502/Proyecto1_Redes#readme"
+  "homepage": "https://github.com/MaJu502/Proyecto1_Redes#readme",
+  "dependencies": {
+    "@xmpp/client": "^0.13.1",
+    "@xmpp/debug": "^0.13.0"
+  }
 }

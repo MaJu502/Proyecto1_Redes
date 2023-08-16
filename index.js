@@ -1,3 +1,5 @@
+const { xmClient } = require('./xmClient');
+
 /*
   Universidad de Valle de Guatemala
   Course: Redes - 2023
@@ -6,8 +8,6 @@
   About:
   Client for connecting to an XMPP server using a JS script with the ability to manage accounts.
 */
-
-//const { client, xml } = require("@xmpp/client"); // variables de xmpp
 
 /* Se crea una función para permitir inputs async del usuario
    cuando se este usando el cliente. Esta función fue implementada
@@ -19,7 +19,6 @@ const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
-
 const input = async (msg) => {
     try {
         return await new Promise((resolve) => rl.question(msg, resolve));
@@ -29,141 +28,190 @@ const input = async (msg) => {
     }
 };
 
-const mainMenu = async () => {
-    while (true) {
-        console.log('\n\n\n--- Menú Principal ---');
-        console.log('1. Mensajería');
-        console.log('2. Administrar');
-        console.log('3. Salir');
+// VARIABLES IMPORTANTES
+let loggedInUser = '';
+let loggedInPassword = '';
+let isLoged = false;
+let loggedClient = new xmClient(loggedInPassword, loggedInPassword);
 
-        const choice = await input('\n >> Seleccione una opción: ');
 
-        switch (choice) {
-            case '1':
-                await messengerMenu();
-                break;
-            case '2':
-                await adminMenu();
-                break;
-            case '3':
-                console.log(" >> Gracias por utilizar el programa! Hasta pronto :)")
-                rl.close();
-                process.exit(0);
-            default:
-                console.log(' >> ERROR: Opción inválida. Por favor, seleccione una opción válida.');
-                break;
-        }
-    }
+/* Menu principal con las opciones 
+   para mensajería y administrador 
+*/
+const showMainMenu = async () => {
+    console.log('\n\n\n--- Menú Principal ---');
+    console.log('1. Mensajería');
+    console.log('2. Administrar');
+    console.log('3. Salir');
+
+    const choice = await input('\n >> Seleccione una opción: ');
+    return parseInt(choice);
 };
 
-
-const messengerMenu = async () => {
+/* Menu para mensajeria */
+const showMensajeriaMenu = async () => {
     console.log('\n\n\n--- Menú de Mensajería ---');
-    console.log('1. Mostrar contactos');
-    console.log('2. Agregar contacto');
-    console.log('3. Info de contacto');
-    console.log('4. Mensaje privado');
-    console.log('5. Chat broadcast');
+    console.log('1. Mensaje privado');
+    console.log('2. Chat broadcast');
+    console.log('3. Mostrar contactos');
+    console.log('4. Agregar contacto');
+    console.log('5. Info de contacto');
     console.log('6. Mod. Estado');
     console.log('7. Notificaciones');
     console.log('8. Archivos');
     console.log('9. Volver al Menú Principal');
 
-    
     const choice = await input('\n >> Seleccione una opción: ');
-    
+    return parseInt(choice);
+};
+/* Menu para adminstrar */
+const showAdministrarMenu = async () => {
+        console.log('\n\n\n--- Menú de Administración ---');
+        console.log('1. Register');
+        console.log('2. Log in');
+        console.log('3. Log out');
+        console.log('4. Delete account');
+        console.log('5. Volver al Menú Principal');
 
-    switch (choice) {
-        case '1':
-            console.log(' >> Opción seleccionada: Mostrar contactos');
-            // Lógica para mostrar contactos
-            break;
-        case '2':
-            console.log(' >> Opción seleccionada: Agregar contacto');
-            // Lógica para agregar contacto
-            break;
-        case '3':
-            console.log(' >> Opción seleccionada: Info de contacto');
-            // Lógica para información de contacto
-            break;
-        case '4':
-            console.log(' >> Opción seleccionada: Mensaje privado');
-            // Lógica para mensaje privado
-            break;
-        case '5':
-            console.log(' >> Opción seleccionada: Chat broadcast');
-            // Lógica para chat broadcast
-            break;
-        case '6':
-            console.log(' >> Opción seleccionada: Mod. Estado');
-            // Lógica para modificar estado
-            break;
-        case '7':
-            console.log(' >> Opción seleccionada: Notificaciones');
-            // Lógica para notificaciones
-            break;
-        case '8':
-            console.log(' >> Opción seleccionada: Archivos');
-            // Lógica para archivos
-            break;
-        case '9':
-            console.log(' >> Regresando al Menú Principal...');
-            await mainMenu();
-            break;
-        default:
-            console.log(' >> ERROR: Opción inválida. Por favor, seleccione una opción válida.');
-            // No llamamos messengerMenu aquí para permitir al usuario intentar nuevamente.
-            break;
-    }
-
-    // Después de manejar cada caso, llamamos a messengerMenu para mostrar el menú nuevamente.
-    await messengerMenu();
+        const choice = await input('\n >> Seleccione una opción: ');
+        return parseInt(choice);
 };
 
-const adminMenu = async () => {
-    console.log('\n\n\n--- Menú de Administración ---');
-    console.log('1. Log in');
-    console.log('2. Log out');
-    console.log('3. Register');
-    console.log('4. Delete account');
-    console.log('5. Volver al Menú Principal');
+/* Función main del programa */
+const main = async () => {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    // VARIABLES IMPORTANTES
+    const servidorREDES = '@alumchat.xyz';
+    let usuario = '';
+    let contra = '';
 
-    
-    const choice = await input('\n >> Seleccione una opción: ');
-    
+    while (true) {
+        const choice = await showMainMenu();
 
-    switch (choice) {
-        case '1':
-            console.log(' >> Opción seleccionada: Log in');
-            // Lógica para iniciar sesión
-            break;
-        case '2':
-            console.log(' >> Opción seleccionada: Log out');
-            // Lógica para cerrar sesión
-            break;
-        case '3':
-            console.log(' >> Opción seleccionada: Register');
-            // Lógica para registrar cuenta
-            break;
-        case '4':
-            console.log(' >> Opción seleccionada: Delete account');
-            // Lógica para eliminar cuenta
-            break;
-        case '5':
-            console.log(' >> Regresando al Menú Principal...');
-            await mainMenu();
-            break;
-        default:
-            console.log(' >> ERROR: Opción inválida. Por favor, seleccione una opción válida.');
-            await adminMenu();
-            break;
+        switch (choice) {
+            case 1:
+                await handleMensajeria();
+                break;
+            case 2:
+                await handleAdministrar();
+                break;
+            case 3:
+                console.log('Saliendo del menú.');
+                rl.close();
+                return;
+            default:
+                console.log('Opción no válida. Inténtalo nuevamente.');
+        }
     }
-
-    // Después de manejar cada caso, llamamos a adminMenu para mostrar el menú nuevamente.
-    await adminMenu();
 };
 
-// Uso de la función
-(async () => {
-    await mainMenu();
-})();
+const handleMensajeria = async () => {
+    while (true) {
+        const choice = await showMensajeriaMenu();
+
+        switch (choice) {
+            case 1:
+                console.log('Realizando Mensaje privado');
+                break;
+            case 2:
+                console.log('Realizando Chat broadcast');
+                break;
+            case 3:
+                console.log('Mostrando contactos');
+                break;
+            case 4:
+                console.log('Agregando contacto');
+                break;
+            case 5:
+                console.log('Mostrando info de contacto');
+                break;
+            case 6:
+                console.log('Modificando estado');
+                break;
+            case 7:
+                console.log('Gestionando notificaciones');
+                break;
+            case 8:
+                console.log('Accediendo a archivos');
+                break;
+            case 9:
+                console.log('Volviendo al Menú Principal');
+                return;
+            default:
+                console.log('Opción no válida. Inténtalo nuevamente.');
+        }
+    }
+};
+
+const handleAdministrar = async () => {
+    while (true) {
+        const choice = await showAdministrarMenu();
+
+        switch (choice) {
+            case 1:
+                loggedInUser = await input('Ingrese el nombre de usuario: ');
+                loggedInPassword = await input('Ingrese la contraseña: ');
+                console.log('Registrando usuario:', loggedInUser);
+                console.log('Contraseña:', loggedInPassword);
+
+                // aqui va client
+                handleClientConnect();
+                await loggedClient.signup();
+
+                break;
+            case 2:
+                loggedInUser = await input('Ingrese el nombre de usuario: ');
+                loggedInPassword = await input('Ingrese la contraseña: ');
+                console.log('Registrando usuario:', loggedInUser);
+                console.log('Contraseña:', loggedInPassword);
+
+                // aqui va client
+                handleClientConnect();
+                await loggedClient.login();
+
+                break;
+            case 3:
+                console.log('Cerrando sesión');
+                
+                // aqui va client
+                await loggedClient.logout();
+
+                break;
+            case 4:
+                console.log('Eliminando cuenta');
+                break;
+            case 5:
+                console.log('Volviendo al Menú Principal');
+                return;
+            default:
+                console.log('Opción no válida. Inténtalo nuevamente.');
+        }
+    }
+};
+
+const handleLogin = async () => {
+    const nombreUsuario = await input('Ingrese el nombre de usuario: ');
+    const contraseña = await input('Ingrese la contraseña: ');
+
+    // Aquí puedes verificar los datos ingresados para el inicio de sesión
+    if (nombreUsuario === 'usuario' && contraseña === 'contraseña') {
+        console.log('Iniciando sesión con usuario:', nombreUsuario);
+        loggedInUser = nombreUsuario;
+        loggedInPassword = contraseña;
+        isLoged =  True;
+        return { username: nombreUsuario, password: contraseña };
+    } else {
+        console.log('Credenciales incorrectas.');
+        return null;
+    }
+};
+
+const handleClientConnect = async () => {
+    loggedClient = new xmClient(loggedInUser, loggedInPassword);
+}
+
+
+
+
+
+main();
