@@ -32,7 +32,7 @@ const input = async (msg) => {
 let loggedInUser = "";
 let loggedInPassword = "";
 let isLoged = false;
-let loggedClient = new xmClient(loggedInPassword, loggedInPassword);
+let loggedClient = null;
 
 
 /* Menu principal con las opciones 
@@ -143,7 +143,7 @@ const handleMensajeria = async () => {
 
                 await loggedClient.changeUserPresence(presenceChoice, statusMessage);
                 break;
-                    
+
             case 7:
                 console.log("Gestionando notificaciones");
                 break;
@@ -173,10 +173,7 @@ const handleAdministrar = async () => {
 
                 // aqui va client
                 handleClientConnect();
-                outputreturn = await loggedClient.signup();
-                if (outputreturn == 0) {
-                    loggedClient.listenForIncomingSubscriptions();
-                };
+                await loggedClient.signup();
 
                 break;
             case 2:
@@ -187,20 +184,14 @@ const handleAdministrar = async () => {
 
                 // aqui va client
                 handleClientConnect();
-                outputreturn = await loggedClient.login();
-                if (outputreturn == 0) {
-                    loggedClient.listenForIncomingSubscriptions();
-                };
+                await loggedClient.login();
 
                 break;
             case 3:
                 console.log("Cerrando sesión");
                 
                 // aqui va client
-                outputreturn = await loggedClient.logout();
-                if (outputreturn == 0) {
-                    console.log(" >> Stopped listening for suscriptions.")
-                };
+                await loggedClient.logout();
 
                 break;
             case 4:

@@ -68,13 +68,13 @@ class xmClient {
                 this.conn.disconnect();
                 console.log("Disconnected");
             });
-            return 0;
+            
         
         } catch (error) {
             const identifier = "signup";
             this.logError(identifier, error);
             console.error(" >> ERROR: error happened during signup (check error-log-xmpp.txt for info).");
-            return 1;
+            
         }
     }
 
@@ -89,24 +89,57 @@ class xmClient {
             }
         });
     
-        this.conn.on("online", (jid) => {
+        this.conn.on("online", async (jid) => {
             console.log(" >> Login successful! JID:\n", jid.toString());
             this.userJID = jid.toString().split('/')[0];
+            
+            // Cambiar el estado de presencia a "activo"
+            const presenceStanza = xml(
+                'presence',
+                { xmlns: 'jabber:client' },
+                xml('show', {}, 'chat'),
+                xml('status', {}, 'Active')
+            );
+            this.conn.send(presenceStanza);
         });
     
         this.conn.on("error", (err) => {
             const identifier = "login";
             this.logError(identifier, err);
         });
+
+        
     
         try {
-            await this.conn.start();
-            return 0;
+            this.conn.start().then(() => {
+
+                
+                this.conn.on('stanza', (stanza) => {
+                    console.log("\n\n\n\nPRINT STANCE > ", stanza)
+                    console.log("\n\n\n")
+                    if (stanza.is('message') && stanza.attrs.type === 'chat') {
+                        const contactJID = stanza.attrs.from;
+                        const messageBody = stanza.getChildText("body");
+                        console.log(` >> > ${contactJID}: ${messageBody}`);
+                    }
+
+                    if (stanza.attrs.type === 'subscribe') {
+                        console.log(" >> Incoming contact request, approved!")
+                        // Aprobar automáticamente la solicitud de contacto
+                        const approvePresence = xml(
+                          'presence',
+                          { to: presence.attrs.from, type: 'subscribed' }
+                        );
+                        xmppClient.send(approvePresence);
+                      }
+                });
+            });
+                
         } catch (error) {
             const identifier = "login";
             this.logError(identifier, error);
             console.error(" >> ERROR: error happened during login: user might not exist (check error-log-xmpp.txt for info).");
-            return 1;
+            
         }
     }
     
@@ -116,12 +149,12 @@ class xmClient {
             // Espera a que se detenga la conexión
             await this.conn.stop();
             console.log(" >> Logout successful!")
-            return 0;
+            
         } catch (error) {
             const identifier = "logout";
             this.logError(identifier, error);
             console.error(" >> ERROR: error happened during logout (check error-log-xmpp.txt for info).");
-            return 1;
+            
         }
     }
 
@@ -166,73 +199,57 @@ class xmClient {
         }
     }
 
-
-    async listenForIncomingSubscriptions() {
-        try {
-            this.conn.on('stanza', (stanza) => {
-                if (stanza.is('presence') && stanza.attrs.type === 'subscribe') {
-                    const contactJID = stanza.attrs.from;
-                    console.log(` >> Incoming subscription request from: ${contactJID}`);
-    
-                    // Aceptar automáticamente las solicitudes de suscripción
-                    const subscribedStanza = xml(
-                        'presence',
-                        { to: contactJID, type: 'subscribed' }
-                    );
-    
-                    this.conn.send(subscribedStanza);
-    
-                    console.log(` >> Accepted subscription request from: ${contactJID}`);
-                }
-            });
-        } catch (error) {
-            const identifier = 'listenForIncomingSubscriptions';
-            this.logError(identifier, error);
-        }
-    }
-
     async getContactList() {
         try {
+
+            const rosterIQ = xml(
+                'iq',
+                { type: 'get' },
+                xml('query', { xmlns: 'jabber:iq:roster' })
+              );
             
-            this.conn.on("online", async () => {
-                console.log("Connected for getting contacts! JID:", jid.toString());
-    
-                const getContactsStanza = `<iq type='get' id='jh2gs675'>
-                    <query xmlns='jabber:iq:roster'/>
-                </iq>`;
-    
-                try {
-                    const response = await this.conn.send(getContactsStanza);
-                    console.log(" >> Contacts:", response.getChild("query").toString());
-                } catch (error) {
-                    const identifier = 'gettingContacts';
-                    this.logError(identifier, error);
-                }
-    
-                // Espera a que se detenga la conexión
-                await this.conn.stop();
-                console.log(" >> Getting contacts finished!");
-            });
+              const rosterResponse = await this.conn.send(rosterIQ);
+            
+              const sortedContacts = rosterResponse.getChild('query').getChildren('item')
+                .map((contact) => {
+                  return {
+                    jid: contact.attrs.jid,
+                    name: contact.attrs.name || '',
+                  };
+                })
+                .sort((a, b) => a.name.localeCompare(b.name));
+            
+              console.log('Sorted Contacts:');
+              sortedContacts.forEach((contact) => {
+                console.log(`JID: ${contact.jid}, Name: ${contact.name}`);
+              });
 
         } catch (error) {
+
             const identifier = 'getContactList';
             this.logError(identifier, error);
+            console.error(" >> ERROR: check error-log-xmpp.txt for more info.");
+
         }
     }
 
-    async getContactInfo(contactJID) {
+    async getContactInfo(jiduser) {
         try {
-            const vcard = await this.conn.getVCard(contactJID);
+            
+            this.conn.send(xml('presence', { to: jiduser }));
 
-            console.log(`Información del contacto: ${contactJID}`);
-            console.log(`Nombre: ${vcard.name}`);
-            console.log(`Apellido: ${vcard.family}`);
-            console.log(`Correo electrónico: ${vcard.email}`);
-            // Agrega más campos de vCard según tus necesidades
+            // Manejar la respuesta de presencia
+            this.conn.on('presence', (presence) => {
+                if (presence.attrs.from === jiduser) {
+                console.log(`Received presence from: ${jiduser}`);
+                // Aquí puedes procesar la respuesta de presencia, que podría incluir información del usuario
+                }
+            });
 
         } catch (error) {
             const identifier = 'getContactInfo';
             this.logError(identifier, error);
+            console.error(" >> ERROR: check error-log-xmpp.txt for more info.");
         }
     }
 
