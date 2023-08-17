@@ -143,7 +143,7 @@ const handleMensajeria = async () => {
 
                 await loggedClient.changeUserPresence(presenceChoice, statusMessage);
                 break;
-                
+                    
             case 7:
                 console.log("Gestionando notificaciones");
                 break;

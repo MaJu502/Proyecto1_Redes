@@ -17,6 +17,7 @@ class xmClient {
         this.errorLogPath = "error-log-xmpp.txt";
         this.initErrorLog();
         this.contacts = []; // Array para almacenar los contactos
+        this.userJID;
     }
 
     initErrorLog() {
@@ -60,9 +61,7 @@ class xmClient {
                 xml("password", {}, this.password),
                 )
               );
-                
-    
-                console.log(stanza.toString())
+            
                 this.conn.send(stanza);
                 console.log("Registration IQ sent successfully");
                 
@@ -92,7 +91,7 @@ class xmClient {
     
         this.conn.on("online", (jid) => {
             console.log(" >> Login successful! JID:\n", jid.toString());
-            // Aquí puedes realizar acciones después de un inicio de sesión exitoso
+            this.userJID = jid.toString().split('/')[0];
         });
     
         this.conn.on("error", (err) => {
@@ -154,7 +153,7 @@ class xmClient {
         try {
             const subscribeStanza = xml(
                 'presence',
-                { to: contactJID, type: 'subscribe' }
+                { from: this.userJID, to: contactJID, type: 'subscribe' }
             );
 
             this.conn.send(subscribeStanza);
@@ -194,18 +193,27 @@ class xmClient {
 
     async getContactList() {
         try {
-            console.log("esperadn")
-            const contactList = await this.conn.getRoster();
-            console.log("nah")
-
-            console.log('\n--- Lista de Contactos ---');
-            for (const jidStr in contactList) {
-                if (contactList.hasOwnProperty(jidStr)) {
-                    const contactJID = jid(jidStr);
-                    console.log(contactJID.toString());
+            
+            this.conn.on("online", async () => {
+                console.log("Connected for getting contacts! JID:", jid.toString());
+    
+                const getContactsStanza = `<iq type='get' id='jh2gs675'>
+                    <query xmlns='jabber:iq:roster'/>
+                </iq>`;
+    
+                try {
+                    const response = await this.conn.send(getContactsStanza);
+                    console.log(" >> Contacts:", response.getChild("query").toString());
+                } catch (error) {
+                    const identifier = 'gettingContacts';
+                    this.logError(identifier, error);
                 }
-            }
-            console.log('--- Fin de la Lista ---\n');
+    
+                // Espera a que se detenga la conexión
+                await this.conn.stop();
+                console.log(" >> Getting contacts finished!");
+            });
+
         } catch (error) {
             const identifier = 'getContactList';
             this.logError(identifier, error);
