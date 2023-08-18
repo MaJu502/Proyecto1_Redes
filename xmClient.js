@@ -18,6 +18,8 @@ class xmClient {
         this.initErrorLog();
         this.contacts = []; // Array para almacenar los contactos
         this.userJID;
+        this.addMessage = [];
+        this.notifications = [];
     }
 
     initErrorLog() {
@@ -115,12 +117,20 @@ class xmClient {
 
                 
                 this.conn.on('stanza', (stanza) => {
-                    console.log("\n\n\n\nPRINT STANCE > ", stanza)
-                    console.log("\n\n\n")
+                    //
                     if (stanza.is('message') && stanza.attrs.type === 'chat') {
                         const contactJID = stanza.attrs.from;
                         const messageBody = stanza.getChildText("body");
-                        console.log(` >> > ${contactJID}: ${messageBody}`);
+                        console.log(`\n >> You have a new message from: ${contactJID} check your messages...`);
+                        this.notifications.push(` >> New message from: ${contactJID} check your messages...`)
+
+                        const senderJID = stanza.attrs.from.split('/')[0];
+                        const messageData = {
+                            sender: senderJID,
+                            message: messageBody,
+                            timestamp: new Date(),
+                        };
+                        this.addMessage.push((contactJID, messageData));
                     }
 
                     if (stanza.attrs.type === 'subscribe') {
@@ -268,11 +278,56 @@ class xmClient {
             const identifier = 'changeUserPresence';
             this.logError(identifier, error);
         }
+    };
+
+    async getMessagesByUsername(username) {
+        // Filtrar los mensajes por el nombre de usuario
+        console.log(this.addMessage)
+        
+        const userMessages = this.addMessage.filter(message => message.sender === username);
+
+        if (userMessages.length === 0) {
+            console.log(`No se encontraron mensajes del sender: ${username}`);
+        } else {
+            console.log(`Mensajes del sender: ${username}`);
+            userMessages.forEach((message) => {
+                console.log(`    ${message.message}\n    (${message.timestamp})`);
+            });
+        }
     }
 
+    async getUniqueSenderUsernames() {
+        const senderUsernames = [];
+        
+        this.addMessage.forEach((message) => {
+            const senderUsername = message.sender;
+            if (!senderUsernames.includes(senderUsername)) {
+                senderUsernames.push(senderUsername);
+            }
+        });
+        
+        senderUsernames.forEach((element) => {
+            console.log(element);
+        });
+    }
 
-    
-    
+    async sendMessagesDM(userJID, bodied) {
+
+        try {
+            const messageStanza = xml(
+                'message',
+                { to: userJID, type: 'chat' },
+                xml('body', {}, bodied)
+            );
+            
+            const response = await this.conn.send(messageStanza);
+            console.log("Message sent:", response.toString());
+        } catch (error) {
+            const identifier = 'sendMessage';
+            this.logError(identifier, error);
+            console.error(" >> ERROR: Unable to send message (check error-log-xmpp.txt for more info).");
+        }
+    }
 
     
 }

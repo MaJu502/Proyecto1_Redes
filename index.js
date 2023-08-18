@@ -66,16 +66,25 @@ const showMensajeriaMenu = async () => {
 };
 /* Menu para adminstrar */
 const showAdministrarMenu = async () => {
-        console.log("\n\n\n--- Menú de Administración ---");
-        console.log("1. Register");
-        console.log("2. Log in");
-        console.log("3. Log out");
-        console.log("4. Delete account");
-        console.log("5. Volver al Menú Principal");
+    console.log("\n\n\n--- Menú de Administración ---");
+    console.log("1. Register");
+    console.log("2. Log in");
+    console.log("3. Log out");
+    console.log("4. Delete account");
+    console.log("5. Volver al Menú Principal");
 
-        const choice = await input("\n >> Seleccione una opción: ");
-        return parseInt(choice);
+    const choice = await input("\n >> Seleccione una opción: ");
+    return parseInt(choice);
 };
+
+const showDMmenu = async () => {
+    console.log("\n\n\n--- Menú de Administración ---");
+    console.log("1. Enviar mensaje");
+    console.log("2. Ver mensajes");
+    console.log("3. Volver al Menú de Mensajería");
+    const choice = await input("\n >> Seleccione una opción: ");
+    return parseInt(choice);
+}
 
 /* Función main del programa */
 const main = async () => {
@@ -105,21 +114,56 @@ const main = async () => {
     }
 };
 
+const handleDMs = async () => {
+    while (true) {
+        const choice = await showDMmenu();
+        switch (choice) {
+            case 1:
+                console.log("Enviando mensaje...");
+                
+                const usuarioDM = await input("\n >> A quien desea enviar el mensaje: ");
+                const cuerpoDM = await input(" >> Su mensaje: \n");
+
+                await loggedClient.sendMessagesDM(usuarioDM,cuerpoDM);
+
+                break;
+            case 2:
+                console.log("Buscando mensajes...\n >> Tiene mensajes de:");
+
+                await loggedClient.getUniqueSenderUsernames();
+                
+                // pregnutar que usuario
+                const usuariodmtemp = await input("\n >> Ingrese el nombre de usuario que desea ver los mensajes: ");
+                
+
+                // mostrar mensajes de ese usuario
+                await loggedClient.getMessagesByUsername(usuariodmtemp);
+
+
+                break;
+            case 3:
+                console.log("Volviendo al Menú Administración");
+                return
+            default:
+                console.log("Opción no válida. Inténtalo nuevamente.");
+        }
+    }
+}
+
 const handleMensajeria = async () => {
     while (true) {
         const choice = await showMensajeriaMenu();
 
         switch (choice) {
             case 1:
-                console.log("Realizando Mensaje privado");
+                await handleDMs();
                 break;
             case 2:
                 console.log("Realizando Chat broadcast");
                 break;
             case 3:
                 console.log("Mostrando contactos");
-
-                await loggedClient.getContactList();
+                return;
 
                 break;
             case 4:
@@ -160,7 +204,6 @@ const handleMensajeria = async () => {
 };
 
 const handleAdministrar = async () => {
-    let outputreturn;
     while (true) {
         const choice = await showAdministrarMenu();
 
