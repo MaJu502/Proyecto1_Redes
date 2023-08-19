@@ -16,10 +16,11 @@ class xmClient {
         this.conn = null;
         this.errorLogPath = "error-log-xmpp.txt";
         this.initErrorLog();
-        this.contacts = []; // Array para almacenar los contactos
+        this.contactosRoster = []; // Array para almacenar los contactos
         this.userJID;
         this.addMessage = [];
         this.notifications = [];
+        this.notifiCONT = 0;
     }
 
     initErrorLog() {
@@ -92,15 +93,16 @@ class xmClient {
         });
     
         this.conn.on("online", async (jid) => {
-            console.log(" >> Login successful! JID:\n", jid.toString());
-            this.userJID = jid.toString().split('/')[0];
+            console.log("\n >> Login successful! JID:\n", jid.toString());
+            this.userJID = jid.toString().split("/")[0];
+            this.JIDdevice = jid.toString();
             
             // Cambiar el estado de presencia a "activo"
             const presenceStanza = xml(
-                'presence',
-                { xmlns: 'jabber:client' },
-                xml('show', {}, 'chat'),
-                xml('status', {}, 'Active')
+                "presence",
+                { xmlns: "jabber:client" },
+                xml("show", {}, "chat"),
+                xml("status", {}, "Active")
             );
             this.conn.send(presenceStanza);
         });
@@ -116,32 +118,85 @@ class xmClient {
             this.conn.start().then(() => {
 
                 
-                this.conn.on('stanza', (stanza) => {
+                this.conn.on("stanza", (stanza) => {
                     //
-                    if (stanza.is('message') && stanza.attrs.type === 'chat') {
+                    if (stanza.is("message") && stanza.attrs.type === "chat") {
                         const contactJID = stanza.attrs.from;
                         const messageBody = stanza.getChildText("body");
-                        console.log(`\n >> You have a new message from: ${contactJID} check your messages...`);
+                        console.log(` >> New messages from ${contactJID}`)
+                        
+                        this.notifiCONT += 1;
                         this.notifications.push(` >> New message from: ${contactJID} check your messages...`)
 
-                        const senderJID = stanza.attrs.from.split('/')[0];
+                        const senderJID = stanza.attrs.from.split("/")[0];
                         const messageData = {
                             sender: senderJID,
                             message: messageBody,
                             timestamp: new Date(),
                         };
                         this.addMessage.push((contactJID, messageData));
+
+                        // mandar stanza de leido automatico aqui.
                     }
 
-                    if (stanza.attrs.type === 'subscribe') {
+                    if (stanza.attrs.type === "subscribe") {
                         console.log(" >> Incoming contact request, approved!")
+                        this.notifications.push(` >> New suscription from ${stanza.attrs.from} accepted.`)
                         // Aprobar automáticamente la solicitud de contacto
                         const approvePresence = xml(
-                          'presence',
-                          { to: presence.attrs.from, type: 'subscribed' }
+                          "presence",
+                          { to: stanza.attrs.from, type: "subscribed" }
                         );
-                        xmppClient.send(approvePresence);
-                      }
+                        this.conn.send(approvePresence);
+                    }
+
+                    if (stanza.is("presence")) {
+                        console.log(stanza)
+                        const presenceType = stanza.getChildText("status");
+                        const contactJID = stanza.attrs.from;
+
+                        const contactJIDWithoutResource = contactJID.toString().split("/")[0].trim();
+
+                        const existingContact = this.contactosRoster.find(contact => contact[0] === contactJIDWithoutResource);
+
+                        if (!existingContact) {
+                            this.contactosRoster.push([contactJIDWithoutResource, stanza.getChildText("status")]);
+                        }
+
+                        if(contactJIDWithoutResource !== this.userJID && presenceType !== null) {
+                            const tiempitostatus = new Date()
+                            const hora = tiempitostatus.getHours();
+                            const minutos = tiempitostatus.getMinutes();
+                            const segundos = tiempitostatus.getSeconds();
+                            console.log(`\n >> The user ${contactJID} is now ${presenceType}.\n`)
+                            this.notifications.push(`\n >> ${contactJID} changed status to ${presenceType} at ${hora}:${minutos}:${segundos}.\n`)
+
+                            const normalizedPresenceType = presenceType.toLowerCase().trim();
+
+                            if (
+                                normalizedPresenceType === "offline" ||
+                                normalizedPresenceType === "away" ||
+                                normalizedPresenceType === "unavailable"
+                            ) {
+                                const contactJIDToRemove = contactJIDWithoutResource;
+
+                                this.contactosRoster = this.contactosRoster.map(contact => {
+                                    if (contact[0] === contactJIDToRemove) {
+                                        return [contactJIDToRemove, "offline"]; // Actualiza el estado
+                                    }
+                                    return contact;
+                                });
+                            }
+                        }
+                        
+                        
+                    }
+
+
+                    if (this.notifiCONT > 0){
+                        console.log("\n\n >> You have new notifications!\n")
+                    }
+
                 });
             });
                 
@@ -157,6 +212,15 @@ class xmClient {
     async logout() {
         try {
             // Espera a que se detenga la conexión
+            // Cambiar el estado de presencia a "offline"
+            const presenceStanza = xml(
+                "presence",
+                { xmlns: "jabber:client" },
+                xml("show", {}, "chat"),
+                xml("status", {}, "Offline")
+            );
+            this.conn.send(presenceStanza);
+
             await this.conn.stop();
             console.log(" >> Logout successful!")
             
@@ -195,61 +259,42 @@ class xmClient {
     async addContact(contactJID) {
         try {
             const subscribeStanza = xml(
-                'presence',
-                { from: this.userJID, to: contactJID, type: 'subscribe' }
+                "presence",
+                { from: this.userJID, to: contactJID, type: "subscribe" }
             );
 
             this.conn.send(subscribeStanza);
-            this.contacts.push(contactJID);
+            this.contactosRoster.push(contactJID);
 
             console.log(` >> Sent contact subscription request to ${contactJID}`);
         } catch (error) {
-            const identifier = 'sendContactSubscription';
+            const identifier = "sendcontactosRosterubscription";
             this.logError(identifier, error);
         }
     }
 
     async getContactList() {
-        try {
+    
+        this.conn.send(xml(
+            'iq',
+            { type: 'get', id: 'roster1' },
+            xml('query', { xmlns: 'jabber:iq:roster' })
+        ));
 
-            const rosterIQ = xml(
-                'iq',
-                { type: 'get' },
-                xml('query', { xmlns: 'jabber:iq:roster' })
-              );
-            
-              const rosterResponse = await this.conn.send(rosterIQ);
-            
-              const sortedContacts = rosterResponse.getChild('query').getChildren('item')
-                .map((contact) => {
-                  return {
-                    jid: contact.attrs.jid,
-                    name: contact.attrs.name || '',
-                  };
-                })
-                .sort((a, b) => a.name.localeCompare(b.name));
-            
-              console.log('Sorted Contacts:');
-              sortedContacts.forEach((contact) => {
-                console.log(`JID: ${contact.jid}, Name: ${contact.name}`);
-              });
+        const formattedContacts = this.contactosRoster.map(contact => `${contact[0]} - ${contact[1]}`).join('\n');
 
-        } catch (error) {
+        console.log(formattedContacts);
 
-            const identifier = 'getContactList';
-            this.logError(identifier, error);
-            console.error(" >> ERROR: check error-log-xmpp.txt for more info.");
 
-        }
     }
 
     async getContactInfo(jiduser) {
         try {
             
-            this.conn.send(xml('presence', { to: jiduser }));
+            this.conn.send(xml("presence", { to: jiduser }));
 
             // Manejar la respuesta de presencia
-            this.conn.on('presence', (presence) => {
+            this.conn.on("presence", (presence) => {
                 if (presence.attrs.from === jiduser) {
                 console.log(`Received presence from: ${jiduser}`);
                 // Aquí puedes procesar la respuesta de presencia, que podría incluir información del usuario
@@ -257,32 +302,31 @@ class xmClient {
             });
 
         } catch (error) {
-            const identifier = 'getContactInfo';
+            const identifier = "getContactInfo";
             this.logError(identifier, error);
             console.error(" >> ERROR: check error-log-xmpp.txt for more info.");
         }
     }
 
-    async changeUserPresence(presenceType, statusMessage = '') {
+    async changeUserPresence(presenceType, statusMessage = "") {
         try {
             const presenceStanza = xml(
-                'presence',
+                "presence",
                 { type: presenceType },
-                xml('status', {}, statusMessage)
+                xml("status", {}, statusMessage)
             );
 
             this.conn.send(presenceStanza);
 
             console.log(` >> Cambio de estado de usuario: ${presenceType}`);
         } catch (error) {
-            const identifier = 'changeUserPresence';
+            const identifier = "changeUserPresence";
             this.logError(identifier, error);
         }
     };
 
     async getMessagesByUsername(username) {
         // Filtrar los mensajes por el nombre de usuario
-        console.log(this.addMessage)
         
         const userMessages = this.addMessage.filter(message => message.sender === username);
 
@@ -291,7 +335,7 @@ class xmClient {
         } else {
             console.log(`Mensajes del sender: ${username}`);
             userMessages.forEach((message) => {
-                console.log(`    ${message.message}\n    (${message.timestamp})`);
+                console.log(`   -> ${message.message}\n        (${message.timestamp})`);
             });
         }
     }
@@ -315,18 +359,36 @@ class xmClient {
 
         try {
             const messageStanza = xml(
-                'message',
-                { to: userJID, type: 'chat' },
-                xml('body', {}, bodied)
+                "message",
+                { to: userJID, type: "chat" },
+                xml("body", {}, bodied)
             );
             
             const response = await this.conn.send(messageStanza);
-            console.log("Message sent:", response.toString());
         } catch (error) {
-            const identifier = 'sendMessage';
+            const identifier = "sendMessage";
             this.logError(identifier, error);
             console.error(" >> ERROR: Unable to send message (check error-log-xmpp.txt for more info).");
         }
+    }
+
+    async mostrarNOTIS() {
+
+        try {
+
+            console.log("\n\n-----------------------------------------------------------------------------------------\n")
+            console.log(` >> Tus notificaciones recientes: `);
+            this.notifications.forEach((noti) => {
+                console.log(`   -> ${noti})`);
+            });
+            console.log("\n-----------------------------------------------------------------------------------------\n\n")
+
+        } catch (error) {
+            const identifier = "showNotifications";
+            this.logError(identifier, error);
+            console.error(" >> ERROR: Unable to show notifications (check error-log-xmpp.txt for more info).");
+        }
+
     }
 
     

@@ -162,9 +162,9 @@ const handleMensajeria = async () => {
                 console.log("Realizando Chat broadcast");
                 break;
             case 3:
-                console.log("Mostrando contactos");
-                return;
-
+                console.log("Mostrando contactos: ");
+                loggedClient.getRoster = true
+                loggedClient.getContactList();
                 break;
             case 4:
                 console.log("Agregando contacto");
@@ -182,14 +182,17 @@ const handleMensajeria = async () => {
                 break;
             case 6:
                 console.log('Modificando estado');
-                const presenceChoice = await input('Selecciona el estado de presencia (available/away/dnd): ');
-                const statusMessage = await input('Ingrese un mensaje de estado (opcional): ');
+                const presenceChoice = await input('Selecciona el estado de presencia (available/away): ');
+                const statusMessage = await input('Ingrese un mensaje de estado para mostrar a los demás usuarios: ');
 
                 await loggedClient.changeUserPresence(presenceChoice, statusMessage);
                 break;
 
             case 7:
-                console.log("Gestionando notificaciones");
+                console.log("Mostrando notificaciones");
+
+                loggedClient.mostrarNOTIS();
+
                 break;
             case 8:
                 console.log("Accediendo a archivos");
