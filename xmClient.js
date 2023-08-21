@@ -151,27 +151,34 @@ class xmClient {
                     }
 
                     if (stanza.is("presence")) {
-                        console.log(stanza)
                         const presenceType = stanza.getChildText("status");
                         const contactJID = stanza.attrs.from;
-
                         const contactJIDWithoutResource = contactJID.toString().split("/")[0].trim();
-
                         const existingContact = this.contactosRoster.find(contact => contact[0] === contactJIDWithoutResource);
+                        let  normalizedPresenceType;
+                        
 
-                        if (!existingContact) {
-                            this.contactosRoster.push([contactJIDWithoutResource, stanza.getChildText("status")]);
+                        if(presenceType === null){
+                            normalizedPresenceType = "online";
+                            if (!existingContact) {
+                                this.contactosRoster.push([contactJIDWithoutResource, "Active"]);
+                            }
+
+                        } else {
+                            normalizedPresenceType = presenceType.toLowerCase().trim();
+                            if (!existingContact) {
+                                this.contactosRoster.push([contactJIDWithoutResource, stanza.getChildText("status")]);
+                            }
                         }
+                        
 
-                        if(contactJIDWithoutResource !== this.userJID && presenceType !== null) {
+                        if(contactJIDWithoutResource !== this.userJID) {
                             const tiempitostatus = new Date()
                             const hora = tiempitostatus.getHours();
                             const minutos = tiempitostatus.getMinutes();
                             const segundos = tiempitostatus.getSeconds();
-                            console.log(`\n >> The user ${contactJID} is now ${presenceType}.\n`)
-                            this.notifications.push(`\n >> ${contactJID} changed status to ${presenceType} at ${hora}:${minutos}:${segundos}.\n`)
-
-                            const normalizedPresenceType = presenceType.toLowerCase().trim();
+                            
+                            
 
                             if (
                                 normalizedPresenceType === "offline" ||
@@ -182,11 +189,29 @@ class xmClient {
 
                                 this.contactosRoster = this.contactosRoster.map(contact => {
                                     if (contact[0] === contactJIDToRemove) {
-                                        return [contactJIDToRemove, "offline"]; // Actualiza el estado
+                                        return [contactJIDToRemove, "Offline"]; // Actualiza el estado
                                     }
                                     return contact;
                                 });
                             }
+
+
+                            if (presenceType === null) {
+                                const contactJIDToRemove = contactJIDWithoutResource;
+
+
+                                this.contactosRoster = this.contactosRoster.map(contact => {
+                                    if (contact[0] === contactJIDToRemove) {
+                                        return [contactJIDToRemove, "Active"]; // Actualiza el estado
+                                    }
+                                    return contact;
+                                });
+                            }
+
+                            console.log(`\n >> The user ${contactJID} is now ${presenceType === null ? 'online' : presenceType}.\n`);
+                            this.notifications.push(`\n >> ${contactJID} changed status to ${presenceType === null ? 'online' : presenceType} at ${hora}:${minutos}:${segundos}.\n`);
+
+
                         }
                         
                         
@@ -290,16 +315,15 @@ class xmClient {
 
     async getContactInfo(jiduser) {
         try {
-            
-            this.conn.send(xml("presence", { to: jiduser }));
 
-            // Manejar la respuesta de presencia
-            this.conn.on("presence", (presence) => {
-                if (presence.attrs.from === jiduser) {
-                console.log(`Received presence from: ${jiduser}`);
-                // Aquí puedes procesar la respuesta de presencia, que podría incluir información del usuario
-                }
-            });
+            const contact = this.contactosRoster.find(item => item[0] === jiduser);
+                if (contact) {
+                    const nombreUsuario = jiduser; // Puedes asignar un nombre si lo tienes disponible
+                    const estado = contact[1];
+                    console.log(` >> El contacto ${nombreUsuario} actualmente se encuentra ${estado}`);
+                } else {
+                    console.log(` >> El contacto ${jiduser} no se encuentra en la lista.`);
+                }          
 
         } catch (error) {
             const identifier = "getContactInfo";
