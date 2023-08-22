@@ -163,7 +163,6 @@ class xmClient {
                     }
 
                     if (stanza.is("message") && stanza.attrs.type === "groupchat") {
-                        console.log(" >>>>>>>>>>>ttttttt>>> ",stanza.attrs.from)
                         if (!this.chatsgroups.includes(stanza.attrs.from.split("@")[0])) {
                             this.chatsgroups.push(stanza.attrs.from.split("@")[0]);
                         }
@@ -185,8 +184,6 @@ class xmClient {
                     }
 
                     if (stanza.is("message") && stanza.attrs.from.toString().includes("conference")){
-
-                        console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>llll")
 
                         if (!this.chatsgroups.includes(stanza.attrs.from.split("@")[0])) {
                             this.chatsgroups.push(stanza.attrs.from.toString());
@@ -211,7 +208,6 @@ class xmClient {
                     }
 
                     if (stanza.is("presence")) {
-                        console.log(stanza)
                         const presenceType = stanza.getChildText("status");
                         const contactJID = stanza.attrs.from;
                         const contactJIDWithoutResource = contactJID.toString().split("/")[0].trim();
@@ -380,9 +376,10 @@ class xmClient {
                 if (contact) {
                     const nombreUsuario = jiduser; // Puedes asignar un nombre si lo tienes disponible
                     const estado = contact[1];
-                    console.log(` >> El contacto ${nombreUsuario} actualmente se encuentra ${estado}`);
+                    console.log(` >> Contact ${nombreUsuario} is currently ${estado}`);
                 } else {
-                    console.log(` >> El contacto ${jiduser} no se encuentra en la lista.`);
+                    console.log(` >> Contact ${jiduser} is not in the list.`);
+                
                 }          
 
         } catch (error) {
@@ -402,7 +399,7 @@ class xmClient {
 
             this.conn.send(presenceStanza);
 
-            console.log(` >> Cambio de estado de usuario: ${presenceType}`);
+            console.log(` >> You have changed your user's status to: ${presenceType}`);
         } catch (error) {
             const identifier = "changeUserPresence";
             this.logError(identifier, error);
@@ -415,9 +412,9 @@ class xmClient {
         const userMessages = this.addMessage.filter(message => message.sender === username);
 
         if (userMessages.length === 0) {
-            console.log(`No se encontraron mensajes del sender: ${username}`);
+            console.log(` >> No messages were found from user: ${username}`);
         } else {
-            console.log(`Mensajes del sender: ${username}`);
+            console.log(`Messages sent from: ${username}`);
             userMessages.forEach((message) => {
                 console.log(`   -> ${message.message}\n        (${message.timestamp})`);
             });
@@ -577,7 +574,7 @@ class xmClient {
         try {
 
             console.log("\n\n-----------------------------------------------------------------------------------------\n")
-            console.log(` >> Tus nuevas notificaciones: `);
+            console.log(` >> Your new notifications: `);
             this.notifications.forEach((noti) => {
                 console.log(`   -> ${noti})`);
             });
