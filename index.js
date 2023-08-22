@@ -31,7 +31,6 @@ const input = async (msg) => {
 // VARIABLES IMPORTANTES
 let loggedInUser = "";
 let loggedInPassword = "";
-let isLoged = false;
 let loggedClient = null;
 
 
@@ -86,13 +85,21 @@ const showDMmenu = async () => {
     return parseInt(choice);
 }
 
+const showGroupMenu = async () => {
+    console.log("\n\n\n--- Menú de Administración ---");
+    console.log("1. Enviar mensaje a grupos (ver chats grupales)");
+    console.log("2. Ver mensajes de grupos");
+    console.log("3. Crear nuevo chat de grupo");
+    console.log("4. Agregar usuario a un chat grupal");
+    console.log("5. Ver grupos");
+    console.log("6. Volver al Menú de Mensajería");
+    const choice = await input("\n >> Seleccione una opción: ");
+    return parseInt(choice);
+}
+
 /* Función main del programa */
 const main = async () => {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
-    // VARIABLES IMPORTANTES
-    const servidorREDES = "@alumchat.xyz";
-    let usuario = "";
-    let contra = "";
 
     while (true) {
         const choice = await showMainMenu();
@@ -150,6 +157,60 @@ const handleDMs = async () => {
     }
 }
 
+const handleGroup = async () => {
+    while (true) {
+        const choice = await showGroupMenu();
+        switch (choice) {
+            case 1:
+                console.log("Enviando mensaje...");
+                
+                const groupDM = await input("\n >> A que grupo desea enviar el mensaje: ");
+                const cuerpoDM = await input(" >> Su mensaje: \n");
+
+                await loggedClient.sendMessagesGroup(groupDM,cuerpoDM);
+
+                break;
+            case 2:
+                console.log("Buscando mensajes...\n >> Tiene estos grupos:");
+
+                await loggedClient.getUniqueSenderUsernames();
+                
+                // pregnutar que usuario
+                const usuariodmtemp = await input("\n >> Ingrese el nombre de grupo que desea ver los mensajes: ");
+                
+
+                // mostrar mensajes de ese usuario
+                await loggedClient.getMessagesByUsername(usuariodmtemp);
+
+
+                break;
+
+            case 3:
+                const namedd = await input("\n >> Ingrese el nombre del grupo al que se desea unir/crear:  ");
+                const nicked = await input("\n >> Ingrese el nickname del grupo al que se desea unir/crear:  ");
+                await loggedClient.grouped1(namedd, nicked);
+
+                break;
+
+            case 4:
+                const userAddedGroup = await input("\n >> Ingrese el JID del usuario que desea agregar al grupo:  ")
+                const roomed = await input("\n >> Ingrese el nombre del chat de grupo al que desea agregar el usuario:  ")
+                await loggedClient.invitedgroup(roomed, userAddedGroup);
+                break
+
+            case 5:
+                await loggedClient.showGroupChats();
+                break 
+
+            case 6:
+                console.log("Volviendo al Menú Administración");
+                return
+            default:
+                console.log("Opción no válida. Inténtalo nuevamente.");
+        }
+    }
+}
+
 const handleMensajeria = async () => {
     while (true) {
         const choice = await showMensajeriaMenu();
@@ -159,7 +220,7 @@ const handleMensajeria = async () => {
                 await handleDMs();
                 break;
             case 2:
-                console.log("Realizando Chat broadcast");
+                await handleGroup();
                 break;
             case 3:
                 console.log("Mostrando contactos: ");
@@ -196,6 +257,11 @@ const handleMensajeria = async () => {
                 break;
             case 8:
                 console.log("Accediendo a archivos");
+                const rutero = await input('Ingrese la ruta del archivo que desea enviar: ');
+                const usuario = await input('Ingrese el JID del usuario al cual le desea enviar el mensaje: ');
+
+                await loggedClient.sendFiles(rutero, usuario);
+
                 break;
             case 9:
                 console.log("Volviendo al Menú Principal");

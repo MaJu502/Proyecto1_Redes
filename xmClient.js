@@ -21,6 +21,8 @@ class xmClient {
         this.addMessage = [];
         this.notifications = [];
         this.notifiCONT = 0;
+        this.chatsgroups = [];
+        this.addGroupMessages = [];
     }
 
     initErrorLog() {
@@ -119,29 +121,87 @@ class xmClient {
 
                 
                 this.conn.on("stanza", (stanza) => {
-                    //
+                    //console.log("\n\n\n >>>",stanza)
                     if (stanza.is("message") && stanza.attrs.type === "chat") {
                         const contactJID = stanza.attrs.from;
                         const messageBody = stanza.getChildText("body");
-                        console.log(` >> New messages from ${contactJID}`)
-                        
-                        this.notifiCONT += 1;
-                        this.notifications.push(` >> New message from: ${contactJID} check your messages...`)
 
-                        const senderJID = stanza.attrs.from.split("/")[0];
+                        if (messageBody === null) {
+
+                            console.log(` >> The user ${contactJID} has read your message.`)
+
+                        } else {
+
+                            console.log(` >> New messages from ${contactJID}`);
+                        
+                            this.notifiCONT += 1;
+
+                            const fileCode = stanza.getChildText('attachment');
+                            if (fileCode) {
+                                // se envio un archivo
+                                const decodeFileInfo = Buffer.from(fileCode, 'base64');
+                                const filepath = `./files/${messageBody}`
+                                fs.writeFileSync(filepath, decodeFileInfo);
+                                console.log(' >> File has been saved in route:', filepath)
+                                this.notifications.push(` New filed shared from: ${contactJID}...`);
+                            } else {
+                                const senderJID = stanza.attrs.from.split("/")[0];
+                                const messageData = {
+                                    sender: senderJID,
+                                    message: messageBody,
+                                    timestamp: new Date(),
+                                };
+                                this.addMessage.push((contactJID, messageData));
+                                this.notifications.push(` New message from: ${contactJID} check your messages...`);
+                                
+                            }
+
+                            
+
+                        }
+                        
+                    }
+
+                    if (stanza.is("message") && stanza.attrs.type === "groupchat") {
+                        console.log(" >>>>>>>>>>>ttttttt>>> ",stanza.attrs.from)
+                        if (!this.chatsgroups.includes(stanza.attrs.from.split("@")[0])) {
+                            this.chatsgroups.push(stanza.attrs.from.split("@")[0]);
+                        }
+
+                        const groupname = stanza.attrs.from.split("@")[0];
+                        const senderJID = stanza.attrs.from.split("/")[1];
                         const messageData = {
                             sender: senderJID,
                             message: messageBody,
                             timestamp: new Date(),
                         };
-                        this.addMessage.push((contactJID, messageData));
 
-                        // mandar stanza de leido automatico aqui.
+                        if (!this.addGroupMessages[groupname]) {
+                            this.addGroupMessages[groupname] = [];
+                        }
+                        
+                        this.addGroupMessages[groupname].push([senderJID, messageData]);
+
+                    }
+
+                    if (stanza.is("message") && stanza.attrs.from.toString().includes("conference")){
+
+                        console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>llll")
+
+                        if (!this.chatsgroups.includes(stanza.attrs.from.split("@")[0])) {
+                            this.chatsgroups.push(stanza.attrs.from.toString());
+                        }
+                        this.conn.send(xml(
+                            "presence",
+                            {
+                                to: stanza.attrs.from.toString()
+                            }
+                        ))
                     }
 
                     if (stanza.attrs.type === "subscribe") {
                         console.log(" >> Incoming contact request, approved!")
-                        this.notifications.push(` >> New suscription from ${stanza.attrs.from} accepted.`)
+                        this.notifications.push(` New suscription from ${stanza.attrs.from} accepted.`)
                         // Aprobar automáticamente la solicitud de contacto
                         const approvePresence = xml(
                           "presence",
@@ -151,6 +211,7 @@ class xmClient {
                     }
 
                     if (stanza.is("presence")) {
+                        console.log(stanza)
                         const presenceType = stanza.getChildText("status");
                         const contactJID = stanza.attrs.from;
                         const contactJIDWithoutResource = contactJID.toString().split("/")[0].trim();
@@ -167,7 +228,7 @@ class xmClient {
                         } else {
                             normalizedPresenceType = presenceType.toLowerCase().trim();
                             if (!existingContact) {
-                                this.contactosRoster.push([contactJIDWithoutResource, stanza.getChildText("status")]);
+                                this.contactosRoster.push([contactJIDWithoutResource, stanza.getChildText("status"), presenceType]);
                             }
                         }
                         
@@ -209,14 +270,13 @@ class xmClient {
                             }
 
                             console.log(`\n >> The user ${contactJID} is now ${presenceType === null ? 'online' : presenceType}.\n`);
-                            this.notifications.push(`\n >> ${contactJID} changed status to ${presenceType === null ? 'online' : presenceType} at ${hora}:${minutos}:${segundos}.\n`);
+                            this.notifications.push(` ${contactJID} changed status to ${presenceType === null ? 'online' : presenceType} at ${hora}:${minutos}:${segundos}.\n`);
 
 
                         }
                         
                         
                     }
-
 
                     if (this.notifiCONT > 0){
                         console.log("\n\n >> You have new notifications!\n")
@@ -306,7 +366,7 @@ class xmClient {
             xml('query', { xmlns: 'jabber:iq:roster' })
         ));
 
-        const formattedContacts = this.contactosRoster.map(contact => `${contact[0]} - ${contact[1]}`).join('\n');
+        const formattedContacts = this.contactosRoster.map(contact => `  -> ${contact[0]}  (${contact[1]})\n            message: ${contact[2]}`).join('\n');
 
         console.log(formattedContacts);
 
@@ -396,16 +456,134 @@ class xmClient {
         }
     }
 
+    async showGroupChats() {
+        console.log(this.chatsgroups);
+    }
+
+    async sendMessagesGroup(group, bodied) {
+
+        try {
+            const messageStanza = xml(
+                "message",
+                { to: `${group}@conference.alumchat.xyz`, type: "groupchat" },
+                xml("body", {}, bodied)
+            );
+            
+            const response = await this.conn.send(messageStanza);
+        } catch (error) {
+            const identifier = "sendMessageGroup";
+            this.logError(identifier, error);
+            console.error(" >> ERROR: Unable to send message to groupchat (check error-log-xmpp.txt for more info).");
+        }
+    }
+
+    async grouped1(groupn, nick){
+        const createGroupPresence = xml(
+            'presence',
+            { to: `${groupn}@conference.alumchat.xyz` },
+            xml('x', { xmlns: 'http://jabber.org/protocol/muc' }),
+            xml('x', { xmlns: 'jabber:x:conference', jid: `${groupn}@conference.alumchat.xyz` }),
+            xml('nick', { xmlns: 'http://jabber.org/protocol/nick' }, nick)
+        );
+        this.conn.send(createGroupPresence);
+    }
+
+    async invitedgroup(grup,usuarioj){
+        
+        const inviteMessage = xml(
+            'message',
+            { to: `${grup}@conference.alumchat.xyz` },
+            xml('x', { xmlns: 'http://jabber.org/protocol/muc#user' },
+                xml('invite', { to: usuarioj })
+            )
+        );
+        this.conn.send(inviteMessage);
+    }
+
+    async joinGroup(userJID, room) {
+        userJID = this.userJID;
+
+        try {
+            
+            const groupchatStanza = xml(
+                "presence",
+                {
+                  to: `${room}@conference.alumchat.xyz/${userJID}`
+                }
+              );
+            
+              const temp = xml(
+                "x",
+                {
+                  xmlns: "http://jabber.org/protocol/muc#user"
+                }
+              );
+            
+              const itemstanza = xml(
+                "item",
+                {
+                  jid: `${userJID}`,
+                  affiliation: "owner",
+                  role: "moderator"
+                }
+              );
+            
+              temp.append(itemstanza);
+              groupchatStanza.append(temp);
+
+              // enviar stanza
+              this.conn.send(groupchatStanza)
+
+
+        } catch (error) {
+            const identifier = "createGroupChat";
+            this.logError(identifier, error);
+            console.error(" >> ERROR: Unable to create group chat (check error-log-xmpp.txt for more info).");
+        }
+    }
+
+    async addUserGroup(userADD, roomed){
+        try {
+            
+            const addusergroupStanza = xml(
+                "iq",
+                {
+                    to: `${roomed}@conference.alumchat.xyz`,
+                    type: "set",
+                    id: "addUserToRoom"
+                }, xml(
+                    "query", {
+                        xmlns: "http://jabber.org/protocol/muc#admin"
+                    }, xml (
+                        "item", {
+                            jid: userADD,
+                            affiliation: "member"
+                        }
+                    )
+                )
+            )
+
+            this.conn.send(addusergroupStanza);
+
+        } catch (error) {
+            const identifier = "addUserToGroupchat";
+            this.logError(identifier, error);
+            console.error(" >> ERROR: Unable to add user to group chat (check error-log-xmpp.txt for more info).");
+        }
+    }
+
     async mostrarNOTIS() {
 
         try {
 
             console.log("\n\n-----------------------------------------------------------------------------------------\n")
-            console.log(` >> Tus notificaciones recientes: `);
+            console.log(` >> Tus nuevas notificaciones: `);
             this.notifications.forEach((noti) => {
                 console.log(`   -> ${noti})`);
             });
             console.log("\n-----------------------------------------------------------------------------------------\n\n")
+            this.notifiCONT = 0;
+            this.notifications = [];
 
         } catch (error) {
             const identifier = "showNotifications";
@@ -413,6 +591,26 @@ class xmClient {
             console.error(" >> ERROR: Unable to show notifications (check error-log-xmpp.txt for more info).");
         }
 
+    }
+
+    async sendFiles(rutaArchivo, userjid) {
+        const fileData = fs.readFileSync(rutaArchivo, { encoding: 'base64' })
+
+        await this.conn.send(
+            xml(
+                'message',
+                { to: userjid,
+                  type: 'chat' 
+                },
+                    xml('body', {}, rutaArchivo.replace('./', '')),
+                    xml('attachment', { 
+                    xmlns: 'urn:xmpp:attachment',
+                    id: 'attachment1',
+                    encoding: 'base64'
+                }, fileData)
+            )
+        )
+        console.log(`\n\n >> The file ${rutaArchivo.replace('./', '')} sento to user: ${userjid}\n`);
     }
 
     
