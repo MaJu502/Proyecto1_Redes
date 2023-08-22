@@ -1,3 +1,10 @@
+/*
+  Universidad de Valle de Guatemala
+  Course: Redes - 2023
+  Author: Marco Jurado
+  Student ID: 20308
+*/
+
 /* Con la ayuda de la pagina oficial de conn client en 
    npm io se sabe algunos de los comandos y la forma de
    escribir las funciones que se necesitan para el manejo

@@ -1,9 +1,3 @@
-const { xmClient } = require("./xmClient");
-/* Se importa el módulo xmClient desde el archivo "xmClient.js".
-   Este es utilizado para crear las instancias de conexión necesarias
-   para comunicarse con el servidor XMPP.
-*/
-
 /*
   Universidad de Valle de Guatemala
   Course: Redes - 2023
@@ -11,6 +5,12 @@ const { xmClient } = require("./xmClient");
   Student ID: 20308
   About:
   Client for connecting to an XMPP server using a JS script with the ability to manage accounts.
+*/
+
+const { xmClient } = require("./xmClient");
+/* Se importa el módulo xmClient desde el archivo "xmClient.js".
+   Este es utilizado para crear las instancias de conexión necesarias
+   para comunicarse con el servidor XMPP.
 */
 
 /* Se crea una función para permitir inputs async del usuario
