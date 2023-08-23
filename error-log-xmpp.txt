@@ -1,0 +1,8 @@
+Identifier: login
+Timestamp: 2023-08-23T03:03:19.003Z
+Error: SASLError: not-authorized
+
+Identifier: login
+Timestamp: 2023-08-23T05:25:48.317Z
+Error: Error: read ECONNRESET
+

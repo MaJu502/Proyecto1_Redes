@@ -178,7 +178,7 @@ class xmClient {
                         const senderJID = stanza.attrs.from.split("/")[1];
                         const messageData = {
                             sender: senderJID,
-                            message: messageBody,
+                            message: "",
                             timestamp: new Date(),
                         };
 
@@ -504,7 +504,7 @@ class xmClient {
         this.conn.send(inviteMessage);
     }
 
-    async joinGroup(userJID, room) {
+    async joinGroup(room, userJID) {
         userJID = this.userJID;
 
         try {

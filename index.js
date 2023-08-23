@@ -202,9 +202,8 @@ const handleGroup = async () => {
 
             case 3:
                 const namedd = await input("\n >> Enter the name of the group you want to join/create: ");
-                const nicked = await input("\n >> Enter the nickname for the group you want to join/create: ");
 
-                await loggedClient.grouped1(namedd, nicked);
+                await loggedClient.joinGroup(namedd, "a");
 
                 break;
 
@@ -257,7 +256,7 @@ const handleMensajeria = async () => {
                 break;
             case 6:
                 console.log('Changing status...');
-                const presenceChoice = await input('Select presence status (available/away): ');
+                const presenceChoice = await input('Select presence status (chat/away/xa/dnd): ');
                 const statusMessage = await input('Enter a status message to display to other users: ');                
                 await loggedClient.changeUserPresence(presenceChoice, statusMessage);
                 break;
